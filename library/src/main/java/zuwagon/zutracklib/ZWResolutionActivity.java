@@ -13,6 +13,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 //import android.support.v7.app.AlertDialog;
 import android.util.Log;
+import android.widget.Toast;
 
 import static zuwagon.zutracklib.Constants.TAG;
 
@@ -27,6 +28,9 @@ public class ZWResolutionActivity extends Activity {
     private boolean shouldStartTracking = false;
 
     private static ZWResolutionActivity _curInstance = null;
+    private String start_stop;
+    private boolean shouldgetLastLocation = false;
+    private String Group_ID = "";
 
     public static final boolean isRunning() {
         return _curInstance != null;
@@ -54,6 +58,9 @@ public class ZWResolutionActivity extends Activity {
                 break;
             }
             case Constants.RESOLUTION_OPTION_PERMISSIONS: {
+                shouldgetLastLocation = args.getBooleanExtra("permission_for_location", false);
+                Group_ID = args.getStringExtra("Group_ID");
+                start_stop = args.getStringExtra("START_STOP");
                 shouldStartTracking = args.getBooleanExtra("start_tracking", false);
                 if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                         Manifest.permission.ACCESS_FINE_LOCATION)) {
@@ -84,7 +91,8 @@ public class ZWResolutionActivity extends Activity {
                 }
                 break;
             }
-            default: finish();
+            default:
+                finish();
         }
     }
 
@@ -96,7 +104,7 @@ public class ZWResolutionActivity extends Activity {
 
     void requestPermissionAccessFineLocation() {
         ActivityCompat.requestPermissions(this,
-                new String[] { Manifest.permission.ACCESS_FINE_LOCATION },
+                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                 RC_PERMISSIONS
         );
     }
@@ -122,9 +130,19 @@ public class ZWResolutionActivity extends Activity {
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
 
+        Log.e("onRequestPermisResult", ">>isgot " + shouldgetLastLocation);
         if (requestCode == RC_PERMISSIONS && grantResults.length > 0 &&
                 grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            if (shouldStartTracking) Zuwagon.startTrack(this);
+            if (shouldStartTracking) {
+                Zuwagon.startTrack(this);
+            } else if (shouldgetLastLocation) {
+                if (start_stop.equalsIgnoreCase("END")) {
+                    Zuwagon.StopTrack_http(this, Group_ID);
+                } else {
+                    Zuwagon.StartTrack_http(this, Group_ID);
+                }
+                Toast.makeText(this, "" + start_stop, Toast.LENGTH_SHORT).show();
+            }
         } else {
             Zuwagon.postStatus(ZWStatus.PERMISSION_REQUEST_FAILED);
         }
