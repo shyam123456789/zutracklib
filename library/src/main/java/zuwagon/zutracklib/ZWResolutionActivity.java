@@ -3,8 +3,6 @@ package zuwagon.zutracklib;
 import android.Manifest;
 import android.app.Activity;
 import android.app.PendingIntent;
-import android.content.ContextWrapper;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -16,6 +14,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import static zuwagon.zutracklib.Constants.TAG;
+import static zuwagon.zutracklib.ZWStatusCallback.CALL_API;
 
 /**
  * Activity, which maintains location flow dialogs, such as permission request or hardware settings adjustment.
@@ -29,7 +28,7 @@ public class ZWResolutionActivity extends Activity {
 
     private static ZWResolutionActivity _curInstance = null;
     private String start_stop;
-    private boolean shouldgetLastLocation = false;
+    private boolean to_get_instant_location = false;
     private String Group_ID = "";
 
     public static final boolean isRunning() {
@@ -58,7 +57,7 @@ public class ZWResolutionActivity extends Activity {
                 break;
             }
             case Constants.RESOLUTION_OPTION_PERMISSIONS: {
-                shouldgetLastLocation = args.getBooleanExtra("permission_for_location", false);
+                to_get_instant_location = args.getBooleanExtra(CALL_API, false);
                 Group_ID = args.getStringExtra("Group_ID");
                 start_stop = args.getStringExtra("START_STOP");
                 shouldStartTracking = args.getBooleanExtra("start_tracking", false);
@@ -130,12 +129,12 @@ public class ZWResolutionActivity extends Activity {
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
 
-        Log.e("onRequestPermisResult", ">>isgot " + shouldgetLastLocation);
+        Log.e("onRequestPermisResult", ">>isgot " + to_get_instant_location);
         if (requestCode == RC_PERMISSIONS && grantResults.length > 0 &&
                 grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             if (shouldStartTracking) {
                 Zuwagon.startTrack(this);
-            } else if (shouldgetLastLocation) {
+            } else if (to_get_instant_location) {
                 if (start_stop.equalsIgnoreCase("END")) {
                     Zuwagon.StopTrack_http(this, Group_ID);
                 } else {

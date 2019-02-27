@@ -13,7 +13,6 @@ import android.preference.PreferenceManager;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
 import com.android.volley.AuthFailureError;
@@ -37,6 +36,7 @@ import java.util.Map;
 
 import static zuwagon.zutracklib.Constants.TAG;
 import static zuwagon.zutracklib.ZWStatusCallback.BASE_URL;
+import static zuwagon.zutracklib.ZWStatusCallback.CALL_API;
 
 /**
  * Entry library class. Purposed to configure and control location tracker.
@@ -284,12 +284,28 @@ public class Zuwagon {
         }
     }
 
-    public static void StartTrack_http(final Context context, final String group_ID) {
+    public static String StartTrack_http(Context context, String group_ID) {
+        try {
+            if (SpHelper.get_istarted(context)) {
+                Log.e("StartTrack_http", "if    ");
+                return "Tracking also started";
+            } else {
+                Log.e("StartTrack_http", "else   ");
+                StartTrack_http1(context, group_ID);
+                return "Tracking started";
+            }
+        } catch (Exception e) {
+            Log.e("StartTrack_http", "exception   ");
+            return "System error";
+        }
+    }
+
+    private static void StartTrack_http1(final Context context, final String group_ID) {
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) !=
                 PackageManager.PERMISSION_GRANTED) {
             Intent intent = new Intent(context, ZWResolutionActivity.class);
             intent.putExtra("option", Constants.RESOLUTION_OPTION_PERMISSIONS);
-            intent.putExtra("permission_for_location", true);
+            intent.putExtra(CALL_API, true);
             intent.putExtra("START_STOP", "START");
             intent.putExtra("Group_ID", group_ID);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -305,10 +321,8 @@ public class Zuwagon {
                             break;
                         case ZWInstantLocationCallback.LOCATION_NOT_AWAILABLE:
 
-
                             break;
                         case ZWInstantLocationCallback.PERMISSION_REQUEST_NEED:
-
 
                             break;
                     }
@@ -322,6 +336,7 @@ public class Zuwagon {
         RequestQueue queue = Volley.newRequestQueue(context);
         JSONObject object = new JSONObject();
         try {
+//            object.put("rider_id", "");
             object.put("rider_id", _riderId);
             object.put("trip", "START");
             object.put("group_id", G_id);
@@ -339,6 +354,8 @@ public class Zuwagon {
             public void onResponse(JSONObject response) {
                 Log.e("onResponse", "onResponse   " + response);
                 startTrack(context);
+                SpHelper.set_isstarted(context, true);
+                //zwHttpCallback.HttpResponseMsg(response);
             }
         }, new Response.ErrorListener() {
             @Override
@@ -372,13 +389,15 @@ public class Zuwagon {
 
     }
 
+    ZWHttpCallback zwHttpCallback;
+
     public static void StopTrack_http(final Context context, final String G_id) {
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) !=
                 PackageManager.PERMISSION_GRANTED) {
             Intent intent = new Intent(context, ZWResolutionActivity.class);
             intent.putExtra("option", Constants.RESOLUTION_OPTION_PERMISSIONS);
             intent.putExtra("permission_for_location", true);
-            intent.putExtra("START_STOP","END");
+            intent.putExtra("START_STOP", "END");
             intent.putExtra("Group_ID", G_id);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(intent);
@@ -390,7 +409,7 @@ public class Zuwagon {
                     switch (result) {
                         case ZWInstantLocationCallback.OK:
                             Log.e("StopTrack_http", "StopTrack_http " + location.toString());
-                            callStopAPI(context, location,G_id);
+                            callStopAPI(context, location, G_id);
                             break;
                         case ZWInstantLocationCallback.LOCATION_NOT_AWAILABLE:
 
@@ -407,12 +426,13 @@ public class Zuwagon {
         }
     }
 
-    private static void callStopAPI(final Context context, Location location,String G_id) {
+    private static void callStopAPI(final Context context, Location location, String G_id) {
         Log.e("---", "-------------------------------------");
         RequestQueue queue = Volley.newRequestQueue(context);
         JSONObject object = new JSONObject();
         try {
-            object.put("rider_id", "358240051111110");
+//            object.put("rider_id", "");
+            object.put("rider_id", _riderId);
             object.put("trip", "END");
             object.put("group_id", G_id);
             JSONObject loc_obj = new JSONObject();
@@ -428,6 +448,7 @@ public class Zuwagon {
             public void onResponse(JSONObject response) {
                 Log.e("onResponse", "onResponse   " + response);
                 stopTrack(context);
+                SpHelper.set_isstarted(context, false);
             }
         }, new Response.ErrorListener() {
             @Override
@@ -437,6 +458,7 @@ public class Zuwagon {
                 //get response body and parse with appropriate encoding
                 if (error.networkResponse.data != null) {
                     try {
+                        SpHelper.set_isstarted(context, false);
                         String body = new String(error.networkResponse.data, "UTF-8");
                         Log.e("onErrorResponse", "onErrorResponse  body " + body);
                     } catch (UnsupportedEncodingException e) {

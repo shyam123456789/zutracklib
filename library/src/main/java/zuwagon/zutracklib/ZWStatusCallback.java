@@ -12,4 +12,5 @@ public interface ZWStatusCallback {
     void onStatus(int code);
 
     String BASE_URL = "https://api.zuwagon.com";
+    String CALL_API = "CALL_API";
 }
